@@ -10,6 +10,30 @@ const colorMap: Record<string, string> = {
   cyan: 'terminal.ansiBrightCyan',
   green: 'terminal.ansiBrightGreen',
   yellow: 'terminal.ansiBrightYellow',
+  b1: 'folderPathColor.b1',
+  b2: 'folderPathColor.b2',
+  b3: 'folderPathColor.b3',
+  b4: 'folderPathColor.b4',
+  b5: 'folderPathColor.b5',
+  b6: 'folderPathColor.b6',
+  g1: 'folderPathColor.g1',
+  g2: 'folderPathColor.g2',
+  g3: 'folderPathColor.g3',
+  g4: 'folderPathColor.g4',
+  g5: 'folderPathColor.g5',
+  g6: 'folderPathColor.g6',
+  r1: 'folderPathColor.r1',
+  r2: 'folderPathColor.r2',
+  r3: 'folderPathColor.r3',
+  r4: 'folderPathColor.r4',
+  r5: 'folderPathColor.r5',
+  r6: 'folderPathColor.r6',
+	custom1: 'folderPathColor.custom1',
+	custom2: 'folderPathColor.custom2',
+	custom3: 'folderPathColor.custom3',
+	custom4: 'folderPathColor.custom4',
+	custom5: 'folderPathColor.custom5',
+	custom6: 'folderPathColor.custom6',
 };
 
 class ColorDecorationProvider implements vscode.FileDecorationProvider {
@@ -25,10 +49,10 @@ class ColorDecorationProvider implements vscode.FileDecorationProvider {
     symbol?: string;
     tooltip?: string;
   }[] = [];
-  private jaime = vscode.window.createOutputChannel("Jaime");
+  private log = vscode.window.createOutputChannel("folder-path-color-auto");
 
   constructFolders() {
-    this.jaime.appendLine('constructing files');
+    this.log.appendLine('constructing files');
     this.folders = [];
     const config = vscode.workspace.getConfiguration('folder-path-color');
     const folders: {
@@ -56,11 +80,12 @@ class ColorDecorationProvider implements vscode.FileDecorationProvider {
 
     if (vscode.workspace.workspaceFolders){
       vscode.workspace.workspaceFolders.forEach(workspaceFolder => {
-        this.jaime.appendLine('workspace folder: ' + JSON.stringify(workspaceFolder.uri.path))
+        this.log.appendLine('workspace folder: ' + JSON.stringify(workspaceFolder.uri.path))
         this.fetchAllGitRepos(workspaceFolder.uri.path).forEach(dir=>{
           const localPath = dir.replace('/.git','').replace(workspaceFolder.uri.path + '/', '');
           const localPathHash = this.generateHash(localPath)
-          const localPathHashDecimal = parseInt(localPathHash, 16);
+          // const localPathHashDecimal = parseInt(localPathHash, 16);
+          const localPathHashDecimal = localPathHash.split('').map(char => char.charCodeAt(0)).reduce((acc, val) => acc + val, 0);
 
           const colorIndex = localPathHashDecimal % Object.keys(colorMap).length
           const emojiIndex = this.decimalToEmoji(localPathHashDecimal)
@@ -74,7 +99,7 @@ class ColorDecorationProvider implements vscode.FileDecorationProvider {
       })
     }
     
-    this.jaime.appendLine(JSON.stringify(this.folders))
+    this.log.appendLine(JSON.stringify(this.folders))
   }
 
   decimalToEmoji(decimal: number) {
@@ -95,7 +120,7 @@ class ColorDecorationProvider implements vscode.FileDecorationProvider {
       const absolutePath = path.join(fullPath, file);
         if (fs.statSync(absolutePath).isDirectory()) {
           if (absolutePath.endsWith('.git')){
-            this.jaime.appendLine('detected git:' + absolutePath)
+            this.log.appendLine('detected git:' + absolutePath)
             files.push(absolutePath);
           }
           else{
@@ -134,8 +159,9 @@ class ColorDecorationProvider implements vscode.FileDecorationProvider {
         let colorId = colorMap[folder.color];
 
         const pathIsInConfig = workspacePaths.find((root) => {
-          const normalizedFolderPath = path.join(root, folder.path).replace(/\\/g, '/');
-          return normalizedUriPath.includes(normalizedFolderPath);
+          const folderPath = folder.path
+          const folderPathSub = `/${folderPath}/`
+          return normalizedUriPath.endsWith(folderPath) || normalizedUriPath.includes(folderPathSub)
         });
 
         if (pathIsInConfig) {
